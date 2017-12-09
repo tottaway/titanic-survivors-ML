@@ -1,6 +1,5 @@
-import numpy
+import numpy as np
 
-np = numpy
 
 def dictToNDArray(d):
     """
@@ -19,7 +18,11 @@ def dictToNDArray(d):
 
 
 def featureNorm(l):
-    print(l[3])
+    """
+    scales data so that max is around 1, min is around -1 and mean is around 0
+    :param l: list
+    :return: list
+    """
     l[1] = (l[1] - 2)
     l[3] = (l[3] - 0.5) * 2
     l[4] = (l[4] - 23) / 35
@@ -80,6 +83,30 @@ def formatAttributes(l):
     return formatRemainder(l)
 
 
+def logisticRegression(X, y, alpha=0.05, s=7):
+    m = y.shape[0]
+    theta = np.random.rand(X.shape[1], 1)
+    count = 0
+    J = 11
+
+    def costFunction(X, y, theta, m, s=0):
+        h = sigmoid(np.dot(X, theta))
+        temp = (1/m) * ((np.dot(np.transpose(np.negative(y)), np.log(h))) - np.dot((1 - np.transpose(y)), np.log(1 - h)))
+        temp = temp.sum((0,1))
+        temp += (s / (2 * m)) * np.sum(theta)
+        return temp
+
+    def grad(X, y, theta, m, alpha, s=0):
+        temp = theta - (alpha / m) * (np.dot(np.transpose(X), (sigmoid(np.dot(X, theta)) - y)))
+        return temp + ((s / m) * theta)
+    while J > 0.001 and count < 150000:
+        theta = grad(X, y, theta, m, alpha, s)
+        J = costFunction(X, y, theta, m, s)
+        count += 1
+
+    return theta, costFunction(X, y, theta, m, s)
+
+
 def sigmoid(X, L=1, k=1,x0=0):
     """
     Preforms sigmoid function element wise on X
@@ -92,3 +119,15 @@ def sigmoid(X, L=1, k=1,x0=0):
     :return: ndarray
     """
     return L/(1 + (np.exp((np.negative(k*(X - x0))))))
+
+
+def test(Xtest, y, theta):
+    h = sigmoid(np.dot(Xtest, theta))
+    for n in h:
+        if n <= 0.5:
+            n = 0
+        else:
+            n = 1
+
+    score = np.abs((y - h))
+    return 100 - np.mean(score) * 100

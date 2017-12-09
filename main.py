@@ -1,8 +1,8 @@
-import numpy
+import numpy as np
 import csv
-from helpers import formatAttributes, dictToNDArray, featureNorm
+from helpers import formatAttributes, dictToNDArray, featureNorm, logisticRegression,test
 
-np = numpy
+
 """
 TODO: FEATURE SCALING
 TODO: find a good minimizing function for linear regression
@@ -14,10 +14,16 @@ TODO: figure how to deal with decimals better
 with open('train.csv') as csvfile:
     myCsv = csv.reader(csvfile, delimiter=',')
     passengerDict = {}
+    testDict = {}
     myCsv.__next__()
-    for n in range(1, 892):
+    for n in range(1, 600):
         passengerDict[n] = featureNorm(formatAttributes(myCsv.__next__()[1:12]))
+    for n in range(1, 192):
+        testDict[n] = featureNorm(formatAttributes(myCsv.__next__()[1:12]))
 
-
+Xtest, Ytest = dictToNDArray(passengerDict)
 X, y = dictToNDArray(passengerDict)
+theta = logisticRegression(X, y)[0]
+print(test(Xtest, Ytest, theta))
+
 
