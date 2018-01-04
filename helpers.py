@@ -7,7 +7,7 @@ def dictToNDArray(d, t=False):
     :param d: dict
     :return: if t=True a ndarray; else a tuple of ndarrays
     """
-    if not test:
+    if not t:
         X = []
         y = []
         for i in d.keys():
@@ -89,6 +89,19 @@ def formatAttributes(l):
 
 
 def logisticRegression(X, y, alpha=0.05, s=0, poly=0):
+    """
+    Runs logistic regression on the training data outputting weights as well as the cost
+
+    :param X: training data (ndarray)
+    :param y: labels for training data (ndarray)
+    :param alpha: learning rate (num)
+    :param s: regularization constant (num)
+    :param poly: creates new features (num)
+    :return: weights and cost (tuple of an ndarray and a num)
+    """
+
+    # create new features based off of powers of current features
+    # allows the model to fit more non-linear data
     if poly != 0:
         polyFeat = np.zeros((X.shape[0], (poly * 10)))
         for n in range(2, poly + 2):
@@ -96,25 +109,55 @@ def logisticRegression(X, y, alpha=0.05, s=0, poly=0):
             polyFeat[:, index] = np.power(X[poly - 2], n)
         np.append(X, polyFeat)
 
+    np.append(X, np.ones(X.shape[0]))
+
+    # initialize variables
+    # m := num of training examples
+    # J := cost
+    # count := used to limit runtime
+    # theta := weights
     m = y.shape[0]
-    theta = np.random.rand(X.shape[1], 1)
+    theta = np.random.rand((X.shape[1]), 1)
     count = 0
-    J = 11
+    J = 1
 
     def costFunction(X, y, theta, m, s=0):
+        """
+        :return: num
+        """
+        # hypothesis
         h = sigmoid(np.dot(X, theta))
+
+        # calculate cost for each example
         temp = (1/m) * ((np.dot(np.transpose(np.negative(y)), np.log(h))) - np.dot((1-np.transpose(y)), np.log(1-h)))
+        # total cost
         temp = temp.sum((0, 1))
-        temp += (s / (2 * m)) * np.sum(theta)
+        # regularize
+        temp += (s / (2 * m)) * np.sum(theta[:-1])
         return temp
 
     def grad(X, y, theta, m, alpha, s=0):
-        temp = theta - (alpha / m) * (np.dot(np.transpose(X), (sigmoid(np.dot(X, theta)) - y)))
-        return temp + ((s / m) * theta)
+        """
+        Calculates the partial derivatives of the cost function
+        :return: ndarry
+        """
+        # hypothesis
+        h = sigmoid(np.dot(X, theta))
 
+        theta -= (alpha / m) * (np.dot(np.transpose(X), (h - y)))
+        # regularization
+        theta[:-1] -= ((s / m) * theta[:-1])
+        return theta
+
+    # run gradient descent until cost drops below a given threshold or the function times out
     while J > 0.001 and count < 100000:
+        # update theta
         theta = grad(X, y, theta, m, alpha, s)
-        J = costFunction(X, y, theta, m, s)
+        # calculate cost every 1000 iterations
+        if count % 1000 == 0:
+            J = costFunction(X, y, theta, m, s)
+            print(J)
+
         count += 1
 
     return theta, costFunction(X, y, theta, m, s)
@@ -133,18 +176,20 @@ def neuralNet(inputLayerSize, hidenLayerSizes, numLabels, numHidenLayers, X, y, 
     :return: tuple (cost, gradients)
     """
     assert X.shape == (1, inputLayerSize), "X.shape must equal (1, inputLayerSize)"
-    def initParams(inputLayerSize, hidenLayerSizes, numHidenLayers, outputLayerSize):
-        nnParams = {}
-        nnParams[0] = np.random.rand(inputLayerSize, hidenLayerSizes[0])
-        for n in range(0, (numHidenLayers)):
+    def initParams(layerSizes, numHidenLayers):
+        nnParams = dict
+        nnParams[0] = np.random.rand(layerSizes[0], layerSizes[1][0])
+        for n in range(0, numHidenLayers):
             if n < (numHidenLayers - 1):
-                nnParams[n + 1] = np.random.rand(hidenLayerSizes[n], hidenLayerSizes[n+1])
+                nnParams[n + 1] = np.random.rand(layerSizes[1][n], layerSizes[1][n+1])
             else:
-                nnParams[n + 1] = np.random.rand(hidenLayerSizes[n], outputLayerSize)
-    pass
+                nnParams[n + 1] = np.random.rand(layerSizes[1][n], layerSizes[2])
+        return nnParams
 
+    nnParams = initParams([inputLayerSize, hidenLayerSizes, y.shape[0]], numHidenLayers)
 
-def reformat(initialData)
+    return nnParams.shape
+
 
 def sigmoid(X, L=1, k=1,x0=0):
     """
@@ -161,7 +206,7 @@ def sigmoid(X, L=1, k=1,x0=0):
 
 
 def test(Xtest, y, theta):
-    h = sigmoid(np.dot(Xtest, theta))
+    h = sigmoid(np.dot(featureNorm(Xtest), theta))
     for n in h:
         if n <= 0.5:
             n = 0
