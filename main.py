@@ -25,9 +25,9 @@ with open('train.csv') as csvfile:
     myCsv.__next__()
     n = 0
     for n in range(1, 600):
-        trainDict[n] = featureNorm(formatAttributes(myCsv.__next__()[1:12]))
-    for n in range(1, 192):
-        devDict[n] = featureNorm(formatAttributes(myCsv.__next__()[1:12]))
+        trainDict[n] = formatAttributes(myCsv.__next__()[1:12])
+    for n in range(1, 292):
+        devDict[n] = formatAttributes(myCsv.__next__()[1:12])
 
     # while True:
     #     try:
@@ -41,6 +41,12 @@ with open('train.csv') as csvfile:
 #Xtest = dictToNDArray(testDict, t=True)
 Xdev, Ydev = dictToNDArray(devDict, t=False)
 X, y = dictToNDArray(trainDict, t=False)
-theta, cost = logisticRegression(X, y, s=0, poly=0)
+X, Xdev = featureNorm(X), featureNorm(Xdev)
+#theta, cost = logisticRegression(X, y, s=-1, poly=0)
 
-print(test(Xdev, Ydev, theta), theta)
+results = []
+for n in range(1,10):
+    theta, cost = logisticRegression(X, y, s=0, poly=0)
+    results.append(test(Xdev, Ydev, theta))
+
+print(results)

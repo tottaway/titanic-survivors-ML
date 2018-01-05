@@ -24,21 +24,15 @@ def dictToNDArray(d, t=False):
         return X
 
 
-def featureNorm(l):
+def featureNorm(X):
     """
-    scales data so that max is around 1, min is around -1 and mean is around 0
-    :param l: list
-    :return: list
+    scales data so norm is 1
+    :param l: ndarray
+    :return: ndarray
     """
-    l[1] = (l[1] - 2)
-    l[3] = (l[3] - 0.5) * 2
-    l[4] = (l[4] - 23) / 35
-    l[5] = l[5] / 5
-    l[6] = l[6] / 6
-    l[8] = (l[8] - 30) / 500
-    l[9] = (l[9] - 50) / 600
-    l[10] = (l[10] - 0.3) / 3
-    return l
+    XNorm = np.linalg.norm(X, axis=1, keepdims=True)
+    X /= XNorm
+    return X
 
 
 def formatAttributes(l):
@@ -55,7 +49,7 @@ def formatAttributes(l):
                 cabin = cabin.replace(key, letterToNum[key])[-3:]
         return cabin
 
-    # formats sex and embarked data points
+    # formats sex and removes NaN data
     def formatRemainder(l):
         conversionDict = {'male': 0, 'female': 1, 'S': 0, 'C': 1, 'Q': 2,}
         result = []
@@ -81,10 +75,12 @@ def formatAttributes(l):
             result = result + [n]
         return result
 
-    # I don't know how to deal with ticket numbers or names
-    l[2], l[7] = 0, 0
-
     l[9] = formatCabin(l[9])
+
+    # drop ticket numbers or names
+    del l[2]
+    del l[6]
+
     return formatRemainder(l)
 
 
@@ -156,7 +152,7 @@ def logisticRegression(X, y, alpha=0.05, s=0, poly=0):
         # calculate cost every 1000 iterations
         if count % 1000 == 0:
             J = costFunction(X, y, theta, m, s)
-            print(J)
+            #print(J)
 
         count += 1
 
@@ -205,7 +201,23 @@ def sigmoid(X, L=1, k=1,x0=0):
     return L/(1 + (np.exp((np.negative(k*(X - x0))))))
 
 
+def sigmoidDerivative(X, L=1, K=1, x0=0):
+    """
+
+    :param X: ndarray
+    :return: ndarray
+    """
+    s = sigmoid(X, L, K, x0)
+    return s * (1 - s)
+
 def test(Xtest, y, theta):
+    """
+    predicts y based on theta then calculates percent correct
+    :param Xtest: ndarray
+    :param y: ndarray
+    :param theta: ndarray
+    :return: float
+    """
     h = sigmoid(np.dot(featureNorm(Xtest), theta))
     for n in h:
         if n <= 0.5:
@@ -214,4 +226,4 @@ def test(Xtest, y, theta):
             n = 1
 
     score = np.abs((y - h))
-    return 100 - np.mean(score) * 100
+    return 100 - (np.mean(score) * 100)
