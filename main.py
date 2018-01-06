@@ -46,7 +46,7 @@ X, Xdev = featureNorm(X), featureNorm(Xdev)
 X, y, Xdev = np.transpose(X), np.transpose(y), np.transpose(Xdev)
 
 # describe NN structure
-hidenLayerSizes = (10,)
+hidenLayerSizes = (10, 5)
 nnParams = neuralNet(hidenLayerSizes, X, y)
 #theta, cost = logisticRegression(X, y, s=-1, poly=0)
 

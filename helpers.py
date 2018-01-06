@@ -64,7 +64,7 @@ def featureNorm(X):
 def feedforward(a, z, nnParams):
     for n in range(1, len(a)):
         z[n] = np.dot(nnParams[n], a[n-1])
-        a[n] = np.tanh(z[n])
+        a[n] = sigmoid(z[n])
     return a, z
 
 
@@ -313,14 +313,7 @@ def testNN(hidenLayerSizes, Xtest, y, nnParams):
 
     # calculate hypothesis
     a, z = feedforward(a, z, nnParams)
-    h = np.transpose(a[numLayers-1])
-
-    # calculate score
-    for n in y:
-        if n <= 0:
-            n = 0
-        else:
-            n = 1
+    h = np.round(np.transpose(a[numLayers-1]))
 
     score = np.abs((y - h))
     return 100 - (np.mean(score) * 100)
