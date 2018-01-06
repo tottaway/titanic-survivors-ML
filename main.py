@@ -23,11 +23,17 @@ with open('train.csv') as csvfile:
     devDict = {}
     testDict = {}
     myCsv.__next__()
-    n = 0
-    for n in range(1, 601):
-        trainDict[n] = formatAttributes(myCsv.__next__()[1:12])
-    for n in range(1, 291):
-        devDict[n] = formatAttributes(myCsv.__next__()[1:12])
+    i, j = 0, 0
+    while True:
+        try:
+            for n in range(4):
+                trainDict[i] = formatAttributes(myCsv.__next__()[1:12])
+                i += 1
+            devDict[j] = formatAttributes(myCsv.__next__()[1:12])
+            j += 1
+        except:
+            break
+
 
     # while True:
     #     try:
@@ -42,12 +48,13 @@ Xdev, Ydev = dictToNDArray(devDict, t=False)
 X, y = dictToNDArray(trainDict, t=False)
 X, Xdev = featureNorm(X), featureNorm(Xdev)
 
-# transposing things because I set them up backwards
-X, y, Xdev = np.transpose(X), np.transpose(y), np.transpose(Xdev)
 
+# transposing things because I set them up backwards
+X, y, Xdev, Ydev = np.transpose(X), np.transpose(y), np.transpose(Xdev), np.transpose(Ydev)
 # describe NN structure
 hidenLayerSizes = (10, 5)
-nnParams = neuralNet(hidenLayerSizes, X, y)
+nnParams, trainingAccuracy = neuralNet(hidenLayerSizes, X, y, s=1)
 #theta, cost = logisticRegression(X, y, s=-1, poly=0)
 
-print("accuracy: " + str(testNN(hidenLayerSizes, Xdev, Ydev, nnParams)))
+print("Dev set error: " + str(testNN(hidenLayerSizes, Xdev, Ydev, nnParams)) + "%")
+print("Training set error: " + str(trainingAccuracy) + "%")

@@ -1,6 +1,6 @@
 import numpy as np
 
-def backprop(a, z, nnParams, grad, X, y, m, alpha):
+def backprop(a, z, nnParams, grad, X, y, m, alpha, s):
     l = len(grad)
     dz = {}
     dz[l] = a[l] - y
@@ -9,9 +9,9 @@ def backprop(a, z, nnParams, grad, X, y, m, alpha):
     for n in range(1, l):
         layer = l - n
         dz[layer] = np.dot(np.transpose(nnParams[layer+1]), dz[layer+1]) * sigmoidDerivative(z[layer])
-        grad[layer] = (1 / m) * np.dot(dz[layer], np.transpose(a[layer-1]))
+        grad[layer] = (1 / m) * np.dot(dz[layer], np.transpose(a[layer-1])) + ((s / m) * nnParams[layer])
     for n in range(1, len(nnParams) + 1):
-        nnParams[n] -= alpha * grad[n]
+        nnParams[n] -= (alpha * grad[n])
 
     return nnParams
 
@@ -240,13 +240,19 @@ def neuralNet(hidenLayerSizes, X, y, s=0, g=0, alpha=0.05):
 
     # run gradient descent
     count = 0
-    while count < 100000:
+    while count <= 100000:
         a, z = feedforward(a, z, nnParams)
-        nnParams = backprop(a, z, nnParams, grad, X, y, m, alpha)
-        count += 1
+        nnParams = backprop(a, z, nnParams, grad, X, y, m, alpha, s)
         if count % 5000 == 0:
-            print(str(count))
-    return nnParams
+            if count == 0:
+                print("Iteration: " + str(count//5000))
+            else:
+                print(str(count//5000))
+
+        count += 1
+
+    accuracy = testNN(hidenLayerSizes, X, y, nnParams)
+    return nnParams, accuracy
 
 
 def sigmoid(X, L=1, k=1,x0=0):
@@ -313,7 +319,8 @@ def testNN(hidenLayerSizes, Xtest, y, nnParams):
 
     # calculate hypothesis
     a, z = feedforward(a, z, nnParams)
-    h = np.round(np.transpose(a[numLayers-1]))
+    h = np.squeeze(np.round(np.transpose(a[numLayers-1])))
+    y = np.squeeze(y)
 
     score = np.abs((y - h))
-    return 100 - (np.mean(score) * 100)
+    return (np.mean(score) * 100)
