@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
-from helpers import formatAttributes, dictToNDArray, featureNorm, logisticRegression, test, neuralNet
+from helpers import formatAttributes, dictToNDArray, featureNorm, logisticRegression, test, neuralNet, testNN
 
 
 """
@@ -24,9 +24,9 @@ with open('train.csv') as csvfile:
     testDict = {}
     myCsv.__next__()
     n = 0
-    for n in range(1, 600):
+    for n in range(1, 601):
         trainDict[n] = formatAttributes(myCsv.__next__()[1:12])
-    for n in range(1, 292):
+    for n in range(1, 291):
         devDict[n] = formatAttributes(myCsv.__next__()[1:12])
 
     # while True:
@@ -36,17 +36,18 @@ with open('train.csv') as csvfile:
     #     except:
     #         break
 
-#print(neuralNet(10, [100, 25], 10, 2, np.zeros(10)), np.zeros([0]), 0)
 
 #Xtest = dictToNDArray(testDict, t=True)
 Xdev, Ydev = dictToNDArray(devDict, t=False)
 X, y = dictToNDArray(trainDict, t=False)
 X, Xdev = featureNorm(X), featureNorm(Xdev)
+
+# transposing things because I set them up backwards
+X, y, Xdev = np.transpose(X), np.transpose(y), np.transpose(Xdev)
+
+# describe NN structure
+hidenLayerSizes = (10,)
+nnParams = neuralNet(hidenLayerSizes, X, y)
 #theta, cost = logisticRegression(X, y, s=-1, poly=0)
 
-results = []
-for n in range(1,10):
-    theta, cost = logisticRegression(X, y, s=0, poly=0)
-    results.append(test(Xdev, Ydev, theta))
-
-print(results)
+print("accuracy: " + str(testNN(hidenLayerSizes, Xdev, Ydev, nnParams)))
