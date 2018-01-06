@@ -1,5 +1,20 @@
 import numpy as np
 
+def backprop(a, z, nnParams, grad, X, y, m, alpha, s):
+    l = len(grad)
+    dz = {}
+    dz[l] = a[l] - y
+    grad[l] = (1 / m) * np.dot(dz[l], np.transpose(a[l-1]))
+
+    for n in range(1, l):
+        layer = l - n
+        dz[layer] = np.dot(np.transpose(nnParams[layer+1]), dz[layer+1]) * sigmoidDerivative(z[layer])
+        grad[layer] = (1 / m) * np.dot(dz[layer], np.transpose(a[layer-1])) + ((s / m) * nnParams[layer])
+    for n in range(1, len(nnParams) + 1):
+        nnParams[n] -= (alpha * grad[n])
+
+    return nnParams
+
 
 def dictToNDArray(d, t=False):
     """
@@ -24,6 +39,17 @@ def dictToNDArray(d, t=False):
         return X
 
 
+def debugShapes(a, z, nnParams, grad):
+    shapes = [["a: "], ["z: "], ["nnParams: "], ["grad: "]]
+    l = [a, z, nnParams, grad]
+    for i in range(len(l)):
+        for n in l[i].values():
+            shapes[i].append(n.shape)
+
+    print(shapes)
+    pass
+
+
 def featureNorm(X):
     """
     scales data so norm is 1
@@ -33,6 +59,13 @@ def featureNorm(X):
     XNorm = np.linalg.norm(X, axis=1, keepdims=True)
     X /= XNorm
     return X
+
+
+def feedforward(a, z, nnParams):
+    for n in range(1, len(a)):
+        z[n] = np.dot(nnParams[n], a[n-1])
+        a[n] = sigmoid(z[n])
+    return a, z
 
 
 def formatAttributes(l):
@@ -82,6 +115,29 @@ def formatAttributes(l):
     del l[6]
 
     return formatRemainder(l)
+
+
+def initNN(layerSizes, numHidenLayers, X):
+    a = {}
+    z = {}
+    nnParams = {}
+    grad = {}
+    a[0] = X
+    for n in range(1, (numHidenLayers + 2)):
+        size = (layerSizes[n], X.shape[1])
+        a[n], z[n] = np.ones(size), np.ones(size)
+
+    nnParams[1] = np.random.rand(layerSizes[1], layerSizes[0])
+    grad[1] = np.zeros((layerSizes[1], layerSizes[0]))
+    for n in range(2, numHidenLayers + 2):
+        if n < (numHidenLayers + 1):
+            nnParams[n] = np.random.rand(layerSizes[n], layerSizes[n-1])
+            grad[n] = np.zeros((layerSizes[n], layerSizes[n-1]))
+        else:
+            nnParams[n] = np.random.rand(layerSizes[-1], layerSizes[-2])
+            grad[n] = np.zeros((layerSizes[-1], layerSizes[-2]))
+
+    return a, z, grad, nnParams
 
 
 def logisticRegression(X, y, alpha=0.05, s=0, poly=0):
@@ -159,7 +215,7 @@ def logisticRegression(X, y, alpha=0.05, s=0, poly=0):
     return theta, costFunction(X, y, theta, m, s)
 
 
-def neuralNet(inputLayerSize, hidenLayerSizes, numLabels, numHidenLayers, X, y, s):
+def neuralNet(hidenLayerSizes, X, y, s=0, g=0, alpha=0.05):
     """
 
     :param inputLayerSize: int
@@ -171,20 +227,32 @@ def neuralNet(inputLayerSize, hidenLayerSizes, numLabels, numHidenLayers, X, y, 
     :param s: int: lambda
     :return: tuple (cost, gradients)
     """
-    assert X.shape == (1, inputLayerSize), "X.shape must equal (1, inputLayerSize)"
-    def initParams(layerSizes, numHidenLayers):
-        nnParams = dict
-        nnParams[0] = np.random.rand(layerSizes[0], layerSizes[1][0])
-        for n in range(0, numHidenLayers):
-            if n < (numHidenLayers - 1):
-                nnParams[n + 1] = np.random.rand(layerSizes[1][n], layerSizes[1][n+1])
+    # init variables
+    layerSizes = [X.shape[0]]
+    layerSizes.extend(hidenLayerSizes)
+    layerSizes.append(y.shape[0])
+    numHidenLayers = len(hidenLayerSizes)
+    m = X.shape[1]
+    a, z, grad, nnParams = initNN(layerSizes, numHidenLayers, X)
+
+    # prints shapes of various objects for debuggin purposes
+    debugShapes(a, z, nnParams, grad)
+
+    # run gradient descent
+    count = 0
+    while count <= 100000:
+        a, z = feedforward(a, z, nnParams)
+        nnParams = backprop(a, z, nnParams, grad, X, y, m, alpha, s)
+        if count % 5000 == 0:
+            if count == 0:
+                print("Iteration: " + str(count//5000))
             else:
-                nnParams[n + 1] = np.random.rand(layerSizes[1][n], layerSizes[2])
-        return nnParams
+                print(str(count//5000))
 
-    nnParams = initParams([inputLayerSize, hidenLayerSizes, y.shape[0]], numHidenLayers)
+        count += 1
 
-    return nnParams.shape
+    accuracy = testNN(hidenLayerSizes, X, y, nnParams)
+    return nnParams, accuracy
 
 
 def sigmoid(X, L=1, k=1,x0=0):
@@ -210,6 +278,7 @@ def sigmoidDerivative(X, L=1, K=1, x0=0):
     s = sigmoid(X, L, K, x0)
     return s * (1 - s)
 
+
 def test(Xtest, y, theta):
     """
     predicts y based on theta then calculates percent correct
@@ -227,3 +296,31 @@ def test(Xtest, y, theta):
 
     score = np.abs((y - h))
     return 100 - (np.mean(score) * 100)
+
+
+def testNN(hidenLayerSizes, Xtest, y, nnParams):
+    def initTestNN(layerSizes, numHidenLayers, X):
+        a = {}
+        z = {}
+        a[0] = Xtest
+        for n in range(1, (numHidenLayers + 2)):
+            size = (layerSizes[n], Xtest.shape[1])
+            a[n], z[n] = np.ones(size), np.ones(size)
+
+        return a, z
+
+    # init variables
+    layerSizes = [Xtest.shape[0]]
+    layerSizes.extend(hidenLayerSizes)
+    layerSizes.append(y.shape[0])
+    numLayers = len(layerSizes)
+    numHidenLayers = len(hidenLayerSizes)
+    a, z = initTestNN(layerSizes, numHidenLayers, Xtest)
+
+    # calculate hypothesis
+    a, z = feedforward(a, z, nnParams)
+    h = np.squeeze(np.round(np.transpose(a[numLayers-1])))
+    y = np.squeeze(y)
+
+    score = np.abs((y - h))
+    return (np.mean(score) * 100)
