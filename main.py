@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
-from helpers import format_attributes, dict_to_ndarray, feature_norm, logistic_regression, test, neural_net, test_nn
+from helpers import format_attributes, dict_to_ndarray, feature_norm, logistic_regression, test_lr, neural_net, test_nn
 
 
 """
@@ -43,7 +43,6 @@ with open('train.csv') as csvfile:
     #         break
 
 
-# x_test = dict_to_ndarray(test_dict, t=True)
 x_dev, y_dev = dict_to_ndarray(dev_dict, t=False)
 x, y = dict_to_ndarray(train_dict, t=False)
 x, x_dev = feature_norm(x), feature_norm(x_dev)
@@ -51,10 +50,22 @@ x, x_dev = feature_norm(x), feature_norm(x_dev)
 
 # transposing things because I set them up backwards
 x, y, x_dev, y_dev = np.transpose(x), np.transpose(y), np.transpose(x_dev), np.transpose(y_dev)
-# describe NN structure
-hiden_layer_sizes = (10, 5)
-nn_params, training_accuracy = neural_net(hiden_layer_sizes, x, y, s=0.3)
-# theta, cost = logisticRegression(x, y, s=-1, poly=0)
 
-print("Dev set error: " + str(test_nn(hiden_layer_sizes, x_dev, y_dev, nn_params)) + "%")
-print("Training set error: " + str(training_accuracy) + "%")
+# describe NN structure
+hidden_layer_sizes = (10, 5)
+
+# train nn_params
+print("Training neural network")
+nn_params, nn_training_error = neural_net(hidden_layer_sizes, x, y, s=0.3)
+
+# train theta w/ logistic regression
+print("Training logistic regression")
+theta, lr_training_error = logistic_regression(x, y, s=-1, poly=0)
+
+# return errors
+print("")
+print("")
+print("Logistic regression training set error: " + str(lr_training_error) + "%")
+print("Logistic regression dev set error: " + str(test_lr(x_dev, y_dev, theta)) + "%")
+print("NN dev set error: " + str(test_nn(hidden_layer_sizes, x_dev, y_dev, nn_params)) + "%")
+print("NN training set error: " + str(nn_training_error) + "%")
